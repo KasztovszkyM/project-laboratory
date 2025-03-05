@@ -6,6 +6,15 @@
 RWTexture2D<float4> Result;
 
 
+/*
+TODO: u(x,y) <-- Sum(N)[ w[i]*Phi[i] ]
+    - N = basis | simulation parameter
+    - w[N] = coefficient vector | recalculated every frame (could be here)
+    - Phi[N] = velocity eigen functions | precalculated at the beginning
+    - u[x,y] = velocity at given cell | calculated every frame here
+    - x,y = cell coordinates [0;Pi[ | thread ID based
+*/
+
 [numthreads(8,8,1)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {

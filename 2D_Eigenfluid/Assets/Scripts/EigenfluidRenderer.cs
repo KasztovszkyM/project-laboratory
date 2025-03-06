@@ -15,14 +15,14 @@ public class EigenfluidRenderer : MonoBehaviour
     private readonly Dictionary<Vector2, int> reverseWaveNumberLookup = new();
     private readonly Dictionary<int, Vector2> waveNumberLookup = new();
 
-    private Vector2[,,] velocityCoeff; //--
+    private Vector2[,,] eigenFunctions; //--
     private float[] eigenValues; //--
+    private float[] coeffs;
     private float[,,] sturctCoeffMatrixes;
     
 
     void Start()
     {
-        
         this.InitializeTexture();
 
         this.Initialize();
@@ -56,16 +56,18 @@ public class EigenfluidRenderer : MonoBehaviour
         eigenValues = new float[this.N];
         this.FillEigenValues();
 
-        velocityCoeff = new Vector2[this.N,this.width,this.height];
-        this.PrecomputeVelocityCoeffs();        
+        eigenFunctions = new Vector2[this.N,this.width,this.height];
+        this.PrecomputeEigenFunctions();        
 
+        coeffs = new float[this.N];
+        
 
         sturctCoeffMatrixes = new float[this.N,this.N,this.N];
         //TODO precompute sturctCoeffMatrix
 
     }
 
-    private void PrecomputeVelocityCoeffs()
+    private void PrecomputeEigenFunctions()
     {
         Vector2 vel = new();
         for(int i = 0; i< this.width; i++){
@@ -80,7 +82,7 @@ public class EigenfluidRenderer : MonoBehaviour
                     vel.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
                     vel.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
                     
-                    velocityCoeff[k-1,i,j] = vel;
+                    eigenFunctions[k-1,i,j] = vel;
                 }
             }
         }

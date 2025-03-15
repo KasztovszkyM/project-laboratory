@@ -6,6 +6,8 @@ namespace Fluid{
     public class EigenfluidRenderer : MonoBehaviour
     {
         public ComputeShader computeShader;
+        private ComputeBuffer coefBuffer;
+        private ComputeBuffer eigenFunctionBuffer;
         private RenderTexture renderTexture;
         private SpriteRenderer spriteRenderer;
         private int width;
@@ -19,7 +21,7 @@ namespace Fluid{
         private readonly bool randomInit = false;
         private Vector2[,,] eigenFunctions; //--
         private float[] eigenValues; //--
-        private float[] coeffs;
+        private float[] coefs;
         private float[,,] sturctCoeffMatrices;
         private float density = 0.1f;
         private float timeStep = 0.1f;
@@ -31,7 +33,7 @@ namespace Fluid{
             this.Initialize();
 
             // Dispatch Compute Shader
-            computeShader.SetTexture(0, "Result", this.renderTexture);
+            this.UpdateShader();
             int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
             int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
             computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
@@ -59,7 +61,7 @@ namespace Fluid{
             eigenFunctions = new Vector2[this.N,this.width,this.height];
             this.PrecomputeEigenFunctions();        
 
-            coeffs = new float[this.N];
+            coefs = new float[this.N];
             this.FillCoeffVector();
 
             sturctCoeffMatrices = new float[this.N,this.N,this.N];
@@ -69,6 +71,15 @@ namespace Fluid{
 
         private void PrecomputeStructCoeffMatrix()
         {
+            for(int i = 0; i< this.N; i++){
+                for(int j = 0; j< this.N; j++){
+                    for(int k = 0; k<this.N; k++){
+                        sturctCoeffMatrices[k,i,j] = 0.0f;
+                    }
+                }
+            }
+
+
             for(int i = 1; i<= this.N; i++){
                 for(int j = 1; j<= this.N; j++){
                     Vector2 i1i2 = waveNumberLookup[i];
@@ -92,7 +103,7 @@ namespace Fluid{
             int index2 = MatrixIndex(lookupIndex);
 
             lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y + j1j2.y);
-            int index3 = MatrixIndex(lookupIndex);
+            int index3 = MatrixIndex(lookupIndex);  
 
             lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y - j1j2.y);
             int index4 = MatrixIndex(lookupIndex);
@@ -116,6 +127,7 @@ namespace Fluid{
 
         private int MatrixIndex(Vector2 lookupIndex){
             if(reverseWaveNumberLookup.ContainsKey(lookupIndex)){
+                        //Debug.Log(reverseWaveNumberLookup[lookupIndex]);
                         return reverseWaveNumberLookup[lookupIndex];
                     }
             return -1;
@@ -164,14 +176,15 @@ namespace Fluid{
         public void FillCoeffVector(){
             if(!this.randomInit){
                 for(int i = 0; i<this.N; i++){
-                    this.coeffs[i] = 0.0f;
+                    this.coefs[i] = 0.0f;
                 }
+                //coefs[15] = 1.0f;
             }
 
             else{
                 System.Random random = new();
                 for(int i = 0; i<this.N; i++){
-                    this.coeffs[i] = (float)random.NextDouble()/this.N;
+                    this.coefs[i] = (float)random.NextDouble()/this.N;
                 }
             }
         }
@@ -186,6 +199,9 @@ namespace Fluid{
             renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32);
             renderTexture.enableRandomWrite = true;
             renderTexture.Create();
+
+            coefBuffer = new ComputeBuffer(this.N, sizeof(float));
+            eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
         }
 
         void Update()
@@ -193,29 +209,46 @@ namespace Fluid{
             //TODO implement update function
             float initialEnergy = this.CalculateEnergy(); //intial energy
             
-            float[] derivedCoeffs = new float[this.N];
+            float[] derivedCoefs = new float[this.N];
              for(int k=0; k < this.N; k++){
-                derivedCoeffs[k] = this.ComputeDerivedCoeff(k); //derivation
+                derivedCoefs[k] = this.ComputeDerivedCoeff(k); //derivation
             }
 
             for(int k = 0; k<this.N; k++){
-               this.coeffs[k] += derivedCoeffs[k] * this.timeStep; //explicit euler integration
+               this.coefs[k] += derivedCoefs[k] * this.timeStep; //explicit euler integration
             }
 
             float changedEnergy = this.CalculateEnergy(); //enery after time step
             float normFactor = MathF.Sqrt(initialEnergy/changedEnergy);
             for(int k = 0; k<this.N; k++){
-                coeffs[k] *= normFactor; //renormalize energy
+                coefs[k] *= normFactor; //renormalize energy
             }
 
             //TODO implement dissapation and force input
+
+            this.UpdateShader();
+
+            //for sure this can be optimized
+            int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
+            computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+
+            // Convert RenderTexture to Sprite
+            Texture2D texture2D = new Texture2D(this.width, this.height, TextureFormat.RGBA32, false);
+            RenderTexture.active = renderTexture;
+            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
+            texture2D.Apply();
+            RenderTexture.active = null;
+
+            // Assign the texture to a sprite
+            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
 
         }
 
         public float CalculateEnergy(){
             float result = 0.0f;
             for(int i = 0; i<this.N; i++){
-                result += this.coeffs[i] * this.coeffs[i];
+                result += this.coefs[i] * this.coefs[i];
             }
             return result;
         }
@@ -234,15 +267,57 @@ namespace Fluid{
             // Compute w^T * C * w
             for (int i = 0; i < this.N; i++) {
                 for (int j = 0; j < this.N; j++) {
-                    result += this.coeffs[i] * mat[i, j] * this.coeffs[j];
+                    result += this.coefs[i] * mat[i, j] * this.coefs[j];
                 }
             }
             return result; 
         }
 
+        private void UpdateShader(){
+            computeShader.SetInt("dimN", this.N);
+            computeShader.SetInt("width", this.width);
+            computeShader.SetInt("height", this.height);
+
+            Vector2[] flattenedFuncitons = this.FlattenArray(eigenFunctions);
+            eigenFunctionBuffer.SetData(flattenedFuncitons);
+            computeShader.SetBuffer(0, "eigenfunctions", eigenFunctionBuffer);
+
+            coefBuffer.SetData(coefs);
+            computeShader.SetBuffer(0, "coefs", coefBuffer);
+            computeShader.SetTexture(0, "result", this.renderTexture);
+        }
+        private Vector2[] FlattenArray(Vector2[,,] array){
+            Vector2[] result = new Vector2[this.N * renderTexture.width * renderTexture.height];
+            for (int x = 0; x < this.width; x++) {
+                for (int y = 0; y < this.height; y++) {
+                    for (int n = 0; n < this.N; n++) {
+                        int index = n + (x * this.N) + (y * width * this.N);
+                        result[index] = eigenFunctions[n, x, y];
+                    }
+                }
+            }
+            return result;
+        }
+        
         void OnDestroy()
         {
-            this.renderTexture.Release();
+             if (renderTexture != null)
+            {
+                renderTexture.Release();
+                renderTexture = null;
+            }
+
+            if (coefBuffer != null)
+            {
+                coefBuffer.Release();
+                coefBuffer = null;
+            }
+
+            if (eigenFunctionBuffer != null)
+            {
+                eigenFunctionBuffer.Release();
+                eigenFunctionBuffer = null;
+            }        
         }
 
     }

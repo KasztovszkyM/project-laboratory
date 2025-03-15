@@ -16,13 +16,14 @@ namespace Fluid{
         private readonly Dictionary<Vector2, int> reverseWaveNumberLookup = new();
         private readonly Dictionary<int, Vector2> waveNumberLookup = new();
 
-        private readonly Boolean randomInit = false;
+        private readonly bool randomInit = false;
         private Vector2[,,] eigenFunctions; //--
         private float[] eigenValues; //--
         private float[] coeffs;
-        private float[,,] sturctCoeffMatrixes;
+        private float[,,] sturctCoeffMatrices;
+        private float density = 0.1f;
+        private float timeStep = 0.1f;
         
-
         void Start()
         {
             this.InitializeTexture();
@@ -46,10 +47,7 @@ namespace Fluid{
             this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
         }
 
-        void OnDestroy()
-        {
-            this.renderTexture.Release();
-        }
+
 
         private void Initialize(){
             this.sqrtN = (int)Math.Sqrt((double)this.N);
@@ -64,7 +62,7 @@ namespace Fluid{
             coeffs = new float[this.N];
             this.FillCoeffVector();
 
-            sturctCoeffMatrixes = new float[this.N,this.N,this.N];
+            sturctCoeffMatrices = new float[this.N,this.N,this.N];
             this.PrecomputeStructCoeffMatrix();
 
         }
@@ -110,9 +108,9 @@ namespace Fluid{
 
         private void UpdateStructCoeffMatrix(int index, int i, int j, float coeffValue, float iEigenValueInv, float jEigenValueInv, float factor)
         {
-            if(index != -1 && index <= this.N){
-                sturctCoeffMatrixes[index,i-1,j-1] = factor * coeffValue * iEigenValueInv;
-                sturctCoeffMatrixes[index,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
+            if(index >= 0 && index < this.N){
+                sturctCoeffMatrices[index-1,i-1,j-1] = factor * coeffValue * iEigenValueInv;
+                sturctCoeffMatrices[index-1,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
             }
         }
 
@@ -138,7 +136,7 @@ namespace Fluid{
                         vel.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
                         vel.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
                         
-                        eigenFunctions[k-1,i,j] = vel;
+                        this.eigenFunctions[k-1,i,j] = vel;
                     }
                 }
             }
@@ -149,31 +147,31 @@ namespace Fluid{
             for(int i = 1; i<=this.sqrtN; i++){
                 for(int j = 1; j<=this.sqrtN; j++){
                     Vector2 k1k2 = new Vector2(i, j);
-                    reverseWaveNumberLookup.Add(k1k2, k);
-                    waveNumberLookup.Add(k, k1k2);
+                    this.reverseWaveNumberLookup.Add(k1k2, k);
+                    this.waveNumberLookup.Add(k, k1k2);
                     k++;
                 }
             }
         }
 
         private void FillEigenValues(){
-            for(int k = 1; k <= this.N; ){
-                Vector2 k1k2 = waveNumberLookup[k];
-                eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
+            for(int k = 1; k <= this.N; k++){
+                Vector2 k1k2 = this.waveNumberLookup[k];
+                this.eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
             }
         }
 
         public void FillCoeffVector(){
-            if(!randomInit){
+            if(!this.randomInit){
                 for(int i = 0; i<this.N; i++){
-                    coeffs[i] = 0.0f;
+                    this.coeffs[i] = 0.0f;
                 }
             }
 
             else{
                 System.Random random = new();
-                for(int i = 0; i< this.N; i++){
-                    coeffs[i] = (float)random.NextDouble()/this.N;
+                for(int i = 0; i<this.N; i++){
+                    this.coeffs[i] = (float)random.NextDouble()/this.N;
                 }
             }
         }
@@ -189,5 +187,63 @@ namespace Fluid{
             renderTexture.enableRandomWrite = true;
             renderTexture.Create();
         }
+
+        void Update()
+        {
+            //TODO implement update function
+            float initialEnergy = this.CalculateEnergy(); //intial energy
+            
+            float[] derivedCoeffs = new float[this.N];
+             for(int k=0; k < this.N; k++){
+                derivedCoeffs[k] = this.ComputeDerivedCoeff(k); //derivation
+            }
+
+            for(int k = 0; k<this.N; k++){
+               this.coeffs[k] += derivedCoeffs[k] * this.timeStep; //explicit euler integration
+            }
+
+            float changedEnergy = this.CalculateEnergy(); //enery after time step
+            float normFactor = MathF.Sqrt(initialEnergy/changedEnergy);
+            for(int k = 0; k<this.N; k++){
+                coeffs[k] *= normFactor; //renormalize energy
+            }
+
+            //TODO implement dissapation and force input
+
+        }
+
+        public float CalculateEnergy(){
+            float result = 0.0f;
+            for(int i = 0; i<this.N; i++){
+                result += this.coeffs[i] * this.coeffs[i];
+            }
+            return result;
+        }
+        public float ComputeDerivedCoeff(int k){
+            float[,] mat = new float[this.N, this.N];
+            for (int i = 0; i < this.N; i++) {
+                for (int j = 0; j < this.N; j++) {
+                    mat[i, j] = this.sturctCoeffMatrices[k, i, j];
+                }
+            }
+            float result = 0.0f;
+
+            if (mat.GetLength(0) != this.N || mat.GetLength(1) != this.N) {
+                throw new ArgumentException("matrix invalid size");
+            }
+            // Compute w^T * C * w
+            for (int i = 0; i < this.N; i++) {
+                for (int j = 0; j < this.N; j++) {
+                    result += this.coeffs[i] * mat[i, j] * this.coeffs[j];
+                }
+            }
+            return result; 
+        }
+
+        void OnDestroy()
+        {
+            this.renderTexture.Release();
+        }
+
     }
 }

@@ -20,18 +20,21 @@ TODO: u(x,y) <-- Sum(N)[ w[i]*Phi[i] ]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= width || id.y >= height) return;
-    //float2 uv = id.xy /float2(width, height); 
 
     float2 velocity = float2(0.0f,0.0f);
+    float speed = 0.0f;
     for(uint k = 0; k < dimN; k++){
-        //int index = k + (dimN * id.x) + (dimN * width * id.y);
-        int index = k + (dimN * (id.x + width * id.y));
+        
+        int index = k + (dimN * id.x) + (dimN * width * id.y);
+        //int index = k + (dimN * (id.x + width * id.y));
         float2 currEigenfunction = eigenfunctions[index];
         float currCoef = coefs[k];
 
         velocity.x += currCoef * currEigenfunction.x;
         velocity.y += currCoef * currEigenfunction.y;
+
+        speed = length(velocity);
     }
     
-    result[id.xy] = float4(velocity.xy, 0.5f, 1.0f); 
+    result[id.xy] = float4(speed, speed, speed, 1.0f); 
 }

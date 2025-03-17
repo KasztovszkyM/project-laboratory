@@ -18,13 +18,13 @@ namespace Fluid{
         private readonly Dictionary<Vector2, int> reverseWaveNumberLookup = new();
         private readonly Dictionary<int, Vector2> waveNumberLookup = new();
 
-        private readonly bool randomInit = false;
+        private readonly bool randomInit = true;
         private Vector2[,,] eigenFunctions; //--
         private float[] eigenValues; //--
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
-        private float density = 0.1f;
-        private float timeStep = 0.1f;
+        private readonly float density = 0.1f;
+        private readonly float timeStep = 0.1f;
         
         void Start()
         {
@@ -36,10 +36,14 @@ namespace Fluid{
             this.UpdateShader();
             int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
             int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
-            computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+            try {
+                computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+            } catch (Exception e) {
+                Debug.LogError("Compute shader dispatch failed: " + e.Message);
+            }
 
             // Convert RenderTexture to Sprite
-            Texture2D texture2D = new Texture2D(this.width, this.height, TextureFormat.RGBA32, false);
+            Texture2D texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
             RenderTexture.active = renderTexture;
             texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
             texture2D.Apply();
@@ -119,7 +123,7 @@ namespace Fluid{
 
         private void UpdateStructCoeffMatrix(int index, int i, int j, float coeffValue, float iEigenValueInv, float jEigenValueInv, float factor)
         {
-            if(index >= 0 && index < this.N){
+            if(index > 0 && index < this.N){
                 sturctCoeffMatrices[index-1,i-1,j-1] = factor * coeffValue * iEigenValueInv;
                 sturctCoeffMatrices[index-1,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
             }
@@ -127,7 +131,6 @@ namespace Fluid{
 
         private int MatrixIndex(Vector2 lookupIndex){
             if(reverseWaveNumberLookup.ContainsKey(lookupIndex)){
-                        //Debug.Log(reverseWaveNumberLookup[lookupIndex]);
                         return reverseWaveNumberLookup[lookupIndex];
                     }
             return -1;
@@ -178,14 +181,19 @@ namespace Fluid{
                 for(int i = 0; i<this.N; i++){
                     this.coefs[i] = 0.0f;
                 }
-                //coefs[15] = 1.0f;
+                coefs[7] = 1.0f;
             }
 
             else{
                 System.Random random = new();
-                for(int i = 0; i<this.N; i++){
-                    this.coefs[i] = (float)random.NextDouble()/this.N;
+                float sum = 0.0f;
+                for(int i = 0; i < this.N; i++){
+                    this.coefs[i] = (float)random.NextDouble();
+                    sum += this.coefs[i];
                 }
+                // for(int i = 0; i < this.N; i++){
+                //     this.coefs[i] /= sum;
+                // }
             }
         }
 
@@ -193,10 +201,11 @@ namespace Fluid{
             this.spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 
             this.width = Screen.width;
-            this.height = Screen.height;
+            this.height = Screen.width;//Screen.height; This was changed in order to ensure a square domain
 
+            Debug.Log(width + " & " + height);
             // Create a RenderTexture for compute shader
-            renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32);
+            renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32); //was RGBA32
             renderTexture.enableRandomWrite = true;
             renderTexture.Create();
 
@@ -206,7 +215,6 @@ namespace Fluid{
 
         void Update()
         {
-            //TODO implement update function
             float initialEnergy = this.CalculateEnergy(); //intial energy
             
             float[] derivedCoefs = new float[this.N];
@@ -226,23 +234,15 @@ namespace Fluid{
 
             //TODO implement dissapation and force input
 
-            this.UpdateShader();
-
-            //for sure this can be optimized
+            this.UpdateShader();            
+                
             int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
             int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
-            computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-
-            // Convert RenderTexture to Sprite
-            Texture2D texture2D = new Texture2D(this.width, this.height, TextureFormat.RGBA32, false);
-            RenderTexture.active = renderTexture;
-            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
-            texture2D.Apply();
-            RenderTexture.active = null;
-
-            // Assign the texture to a sprite
-            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
-
+            try {
+                computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+            } catch (Exception e) {
+                Debug.LogError("Compute shader dispatch failed: " + e.Message);
+            }
         }
 
         public float CalculateEnergy(){
@@ -272,8 +272,11 @@ namespace Fluid{
             }
             return result; 
         }
-
         private void UpdateShader(){
+            if (eigenFunctions == null || coefs == null) {
+                throw new InvalidOperationException("Eigenfunctions or coefficients are not initialized.");
+            }
+            
             computeShader.SetInt("dimN", this.N);
             computeShader.SetInt("width", this.width);
             computeShader.SetInt("height", this.height);
@@ -292,7 +295,7 @@ namespace Fluid{
                 for (int y = 0; y < this.height; y++) {
                     for (int n = 0; n < this.N; n++) {
                         int index = n + (x * this.N) + (y * width * this.N);
-                        result[index] = eigenFunctions[n, x, y];
+                        result[index] = array[n, x, y];
                     }
                 }
             }

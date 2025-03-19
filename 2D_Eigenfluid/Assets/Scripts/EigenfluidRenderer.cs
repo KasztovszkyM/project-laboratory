@@ -2,10 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Fluid{
+//namespace Fluid{
     public class EigenfluidRenderer : MonoBehaviour
     {
         public ComputeShader computeShader;
+        private Texture2D texture2D;
         private ComputeBuffer coefBuffer;
         private ComputeBuffer eigenFunctionBuffer;
         private RenderTexture renderTexture;
@@ -13,18 +14,18 @@ namespace Fluid{
         private int width;
         private int height; 
 
-        private readonly int N = 16;
+        public int N = 16;
         private int sqrtN; 
         private readonly Dictionary<Vector2, int> reverseWaveNumberLookup = new();
         private readonly Dictionary<int, Vector2> waveNumberLookup = new();
 
-        private readonly bool randomInit = true;
+        public bool randomInit = true;
         private Vector2[,,] eigenFunctions; //--
         private float[] eigenValues; //--
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
-        private readonly float density = 0.1f;
-        private readonly float timeStep = 0.1f;
+        public float density = 0.1f;
+        public float timeStep = 1.0f;
         
         void Start()
         {
@@ -43,7 +44,7 @@ namespace Fluid{
             }
 
             // Convert RenderTexture to Sprite
-            Texture2D texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
+            texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
             RenderTexture.active = renderTexture;
             texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
             texture2D.Apply();
@@ -232,6 +233,10 @@ namespace Fluid{
                 coefs[k] *= normFactor; //renormalize energy
             }
 
+            for(int k = 0; k<this.N;k++){
+                this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density);
+            }
+
             //TODO implement dissapation and force input
 
             this.UpdateShader();            
@@ -243,6 +248,11 @@ namespace Fluid{
             } catch (Exception e) {
                 Debug.LogError("Compute shader dispatch failed: " + e.Message);
             }
+
+            RenderTexture.active = renderTexture;
+            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
+            texture2D.Apply();
+            RenderTexture.active = null;
         }
 
         public float CalculateEnergy(){
@@ -324,4 +334,4 @@ namespace Fluid{
         }
 
     }
-}
+//}

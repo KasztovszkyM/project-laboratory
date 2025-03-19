@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-//namespace Fluid{
+namespace Fluid{
     public class EigenfluidRenderer : MonoBehaviour
     {
         public ComputeShader computeShader;
@@ -192,17 +192,21 @@ using UnityEngine;
                     this.coefs[i] = (float)random.NextDouble();
                     sum += this.coefs[i];
                 }
-                // for(int i = 0; i < this.N; i++){
-                //     this.coefs[i] /= sum;
-                // }
             }
         }
 
         private void InitializeTexture(){
             this.spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 
-            this.width = Screen.width;
-            this.height = Screen.width;//Screen.height; This was changed in order to ensure a square domain
+            if(Screen.width <= Screen.height){
+                this.width = Screen.width;
+                this.height = Screen.width;
+            }
+            else{  
+                this.width = Screen.height;
+                this.height = Screen.height;
+                 }
+         
 
             Debug.Log(width + " & " + height);
             // Create a RenderTexture for compute shader
@@ -236,8 +240,6 @@ using UnityEngine;
             for(int k = 0; k<this.N;k++){
                 this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density);
             }
-
-            //TODO implement dissapation and force input
 
             this.UpdateShader();            
                 
@@ -334,4 +336,4 @@ using UnityEngine;
         }
 
     }
-//}
+}

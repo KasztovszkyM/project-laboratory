@@ -129,6 +129,8 @@ GameObject:
   m_Component:
   - component: {fileID: 68157373}
   - component: {fileID: 68157374}
+  - component: {fileID: 68157375}
+  - component: {fileID: 68157376}
   m_Layer: 0
   m_Name: RenderSurface
   m_TagString: Untagged
@@ -145,7 +147,7 @@ Transform:
   m_GameObject: {fileID: 68157372}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -164,10 +166,43 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   computeShader: {fileID: 7200000, guid: 1b8695c281963b4488cc49810ee84e8a, type: 3}
-  N: 16
+  N: 9
   randomInit: 1
   density: 0.01
-  timeStep: 1
+  timeStep: 0.1
+--- !u!114 &68157375
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 68157372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de2acd8a83f64c447a14ddc86dc29837, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!65 &68157376
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 68157372}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 648, y: 648, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0

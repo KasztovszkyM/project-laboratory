@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Fluid{
+namespace Fluid
+{
     public class EigenfluidRenderer : MonoBehaviour
     {
         public ComputeShader computeShader;
@@ -10,9 +11,9 @@ namespace Fluid{
         private ComputeBuffer coefBuffer;
         private ComputeBuffer eigenFunctionBuffer;
         private RenderTexture renderTexture;
-        private SpriteRenderer spriteRenderer;
-        private int width;
-        private int height; 
+        public SpriteRenderer spriteRenderer;
+        public int width;
+        public int height; 
 
         public int N = 16;
         private int sqrtN; 
@@ -196,16 +197,16 @@ namespace Fluid{
         }
 
         private void InitializeTexture(){
-            this.spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
+            this.spriteRenderer = GetComponent<SpriteRenderer>();
 
-            if(Screen.width <= Screen.height){
-                this.width = Screen.width;
-                this.height = Screen.width;
-            }
-            else{  
-                this.width = Screen.height;
-                this.height = Screen.height;
-                 }
+            // if(Screen.width <= Screen.height){
+            //     this.width = Screen.width;
+            //     this.height = Screen.width;
+            // }
+            // else{  
+            //     this.width = Screen.height;
+            //     this.height = Screen.height;
+            //      }
          
 
             Debug.Log(width + " & " + height);

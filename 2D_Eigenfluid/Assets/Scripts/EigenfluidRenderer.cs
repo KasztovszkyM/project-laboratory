@@ -172,13 +172,18 @@ namespace Fluid
                 for(int i = 0; i < this.N; i++){
                     this.coefs[i] = 0.0f;
                 }
+                this.coefs[this.N-1] = 1.0f;
             }
 
             else{
                 System.Random random = new();
-
+                float sum = 0.0f;
                 for(int i = 0; i < this.N; i++){
                     this.coefs[i] = (float)random.NextDouble();
+                    sum += this.coefs[i];
+                }
+                for(int i = 0; i< this.N; i++){
+                    this.coefs[i] *= 1.0f/sum;
                 }
             }
         }
@@ -220,6 +225,7 @@ namespace Fluid
             }
 
             this.ResetForces();
+
 
             this.UpdateShader();            
             this.UpdateTexture();

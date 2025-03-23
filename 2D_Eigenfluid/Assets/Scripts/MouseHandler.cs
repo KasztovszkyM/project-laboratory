@@ -32,6 +32,7 @@ public class MouseHandler : MonoBehaviour
 
                 if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
                     Vector2 force = currPoint - lastPoint;
+                    Debug.Log(force);
                     Renderer.ProjectForce(lastPoint, force);
                 }
                 lastPoint = currPoint;

@@ -148,7 +148,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: -0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 4, y: 4, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -166,11 +166,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   computeShader: {fileID: 7200000, guid: 1b8695c281963b4488cc49810ee84e8a, type: 3}
-  width: 400
-  height: 400
+  width: 128
+  height: 128
   N: 16
-  randomInit: 1
-  density: 0.1
+  randomInit: 0
+  density: 0.01
   timeStep: 0.1
 --- !u!114 &68157377
 MonoBehaviour:

@@ -54,11 +54,8 @@ namespace Fluid
             coefs = new float[this.N];
             this.FillCoeffVector();
 
-            this.forces = new float[this.N];
-            System.Random random = new();
-                for(int i = 0; i < this.N; i++){
-                    this.forces[i] = (float)random.NextDouble();
-                }
+            forces = new float[this.N];
+            this.ResetForces();
 
             sturctCoeffMatrices = new float[this.N,this.N,this.N];
             this.PrecomputeStructCoeffMatrix();
@@ -172,24 +169,22 @@ namespace Fluid
 
         public void FillCoeffVector(){
             if(!this.randomInit){
-                for(int i = 0; i<this.N; i++){
+                for(int i = 0; i < this.N; i++){
                     this.coefs[i] = 0.0f;
                 }
             }
 
             else{
                 System.Random random = new();
-                float sum = 0.0f;
+
                 for(int i = 0; i < this.N; i++){
                     this.coefs[i] = (float)random.NextDouble();
-                    sum += this.coefs[i];
                 }
             }
         }
 
         private void InitializeTexture(){
             this.spriteRenderer = GetComponent<SpriteRenderer>();
-            Debug.Log(width + " & " + height);
 
             texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
             // Create a RenderTexture for compute shader
@@ -224,10 +219,17 @@ namespace Fluid
                 this.coefs[k] += forces[k]; //external forces
             }
 
+            this.ResetForces();
+
             this.UpdateShader();            
             this.UpdateTexture();
         }
 
+        private void ResetForces(){
+            for(int k = 0; k<this.N; k++){
+                this.forces[k] = 0.0f;
+            }
+        }
         public float CalculateEnergy(){
             float result = 0.0f;
             for(int i = 0; i<this.N; i++){
@@ -243,16 +245,15 @@ namespace Fluid
                 }
             }
             float result = 0.0f;
-
-            if (mat.GetLength(0) != this.N || mat.GetLength(1) != this.N) {
-                throw new ArgumentException("matrix invalid size");
-            }
-            // Compute w^T * C * w
-            for (int i = 0; i < this.N; i++) {
-                for (int j = 0; j < this.N; j++) {
-                    result += this.coefs[i] * mat[i, j] * this.coefs[j];
+            
+            for(int i = 0; i<this.N; i++){
+                float sum = 0.0f;
+                for(int j = 0; j<this.N; j++){
+                    sum += mat[i,j]*this.coefs[j];
+                    result += coefs[i] * sum;
                 }
             }
+            // Compute w^T * C * w
             return result; 
         }
         private void UpdateShader(){
@@ -301,14 +302,12 @@ namespace Fluid
         }
         public void ProjectForce(Vector2 lastPoint, Vector2 force)
         {
-            float sumf = 0.0f;
+            float sumf;
             for(int k = 1; k<=this.N; k++){
                 Vector2 k1k2 = waveNumberLookup[k];
                 Vector2 velocity = CalculateVelocity(lastPoint.x, lastPoint.y, k1k2);
                 
-                sumf += velocity.x * force.x;
-                sumf += velocity.y * force.y;
-
+                sumf = Vector2.Dot(velocity, force*-1.0f);
                 forces[k-1] = sumf;
             }
         }

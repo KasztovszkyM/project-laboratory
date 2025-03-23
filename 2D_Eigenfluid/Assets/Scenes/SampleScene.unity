@@ -169,8 +169,8 @@ MonoBehaviour:
   width: 400
   height: 400
   N: 16
-  randomInit: 0
-  density: 0.001
+  randomInit: 1
+  density: 0.1
   timeStep: 0.1
 --- !u!114 &68157377
 MonoBehaviour:

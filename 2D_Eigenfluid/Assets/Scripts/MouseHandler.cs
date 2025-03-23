@@ -35,7 +35,7 @@ public class MouseHandler : MonoBehaviour
                     Renderer.ProjectForce(lastPoint, force);
                 }
                 lastPoint = currPoint;
-                Debug.Log(currPoint);
+                //Debug.Log(currPoint);
             }                 
         } 
         if (Input.GetMouseButtonUp(0)){
@@ -46,7 +46,7 @@ public class MouseHandler : MonoBehaviour
         if(pos.x <= 0.0f || 
            pos.x >= (float)Math.PI || 
            pos.y <= 0.0f || 
-           pos.y <= (float)Math.PI)
+           pos.y >= (float)Math.PI)
            { 
             return false; 
             }

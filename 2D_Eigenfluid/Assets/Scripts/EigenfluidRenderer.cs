@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace Fluid
 {
@@ -11,7 +13,7 @@ namespace Fluid
         private ComputeBuffer coefBuffer;
         private ComputeBuffer eigenFunctionBuffer;
         private RenderTexture renderTexture;
-        public SpriteRenderer spriteRenderer;
+        private SpriteRenderer spriteRenderer;
         public int width;
         public int height; 
 
@@ -25,38 +27,20 @@ namespace Fluid
         private float[] eigenValues; //--
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
+        private float[] forces;
         public float density = 0.1f;
         public float timeStep = 1.0f;
         
         void Start()
         {
             this.InitializeTexture();
-
             this.Initialize();
-
             // Dispatch Compute Shader
             this.UpdateShader();
-            int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
-            int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
-            try {
-                computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-            } catch (Exception e) {
-                Debug.LogError("Compute shader dispatch failed: " + e.Message);
-            }
-
-            // Convert RenderTexture to Sprite
-            texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
-            RenderTexture.active = renderTexture;
-            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
-            texture2D.Apply();
-            RenderTexture.active = null;
-
+            this.UpdateTexture();
             // Assign the texture to a sprite
             this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
         }
-
-
-
         private void Initialize(){
             this.sqrtN = (int)Math.Sqrt((double)this.N);
             this.FillLookupTables();
@@ -69,6 +53,12 @@ namespace Fluid
 
             coefs = new float[this.N];
             this.FillCoeffVector();
+
+            this.forces = new float[this.N];
+            System.Random random = new();
+                for(int i = 0; i < this.N; i++){
+                    this.forces[i] = (float)random.NextDouble();
+                }
 
             sturctCoeffMatrices = new float[this.N,this.N,this.N];
             this.PrecomputeStructCoeffMatrix();
@@ -140,7 +130,6 @@ namespace Fluid
 
         private void PrecomputeEigenFunctions()
         {
-            Vector2 vel = new();
             for(int i = 0; i< this.width; i++){
                 for(int j = 0; j< this.height;j++){
                     for(int k = 1; k <= this.N; k++){
@@ -149,16 +138,19 @@ namespace Fluid
                         float x = i*((float)Math.PI/this.width);
                         float y = j*((float)Math.PI/this.height);
 
-                        float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
-                        vel.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
-                        vel.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
-                        
-                        this.eigenFunctions[k-1,i,j] = vel;
+                        this.eigenFunctions[k-1,i,j] = CalculateVelocity(x, y, k1k2);
                     }
                 }
             }
         }
+        private static Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
+            Vector2 velocity = new Vector2();
 
+            float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
+            velocity.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
+            velocity.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
+            return velocity;
+        }
         private void FillLookupTables(){
             int k = 1;
             for(int i = 1; i<=this.sqrtN; i++){
@@ -183,7 +175,6 @@ namespace Fluid
                 for(int i = 0; i<this.N; i++){
                     this.coefs[i] = 0.0f;
                 }
-                coefs[7] = 1.0f;
             }
 
             else{
@@ -198,18 +189,9 @@ namespace Fluid
 
         private void InitializeTexture(){
             this.spriteRenderer = GetComponent<SpriteRenderer>();
-
-            // if(Screen.width <= Screen.height){
-            //     this.width = Screen.width;
-            //     this.height = Screen.width;
-            // }
-            // else{  
-            //     this.width = Screen.height;
-            //     this.height = Screen.height;
-            //      }
-         
-
             Debug.Log(width + " & " + height);
+
+            texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
             // Create a RenderTexture for compute shader
             renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32); //was RGBA32
             renderTexture.enableRandomWrite = true;
@@ -218,7 +200,6 @@ namespace Fluid
             coefBuffer = new ComputeBuffer(this.N, sizeof(float));
             eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
         }
-
         void Update()
         {
             float initialEnergy = this.CalculateEnergy(); //intial energy
@@ -239,23 +220,12 @@ namespace Fluid
             }
 
             for(int k = 0; k<this.N;k++){
-                this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density);
+                this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density); //disspiate energy
+                this.coefs[k] += forces[k]; //external forces
             }
 
             this.UpdateShader();            
-                
-            int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
-            int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
-            try {
-                computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
-            } catch (Exception e) {
-                Debug.LogError("Compute shader dispatch failed: " + e.Message);
-            }
-
-            RenderTexture.active = renderTexture;
-            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
-            texture2D.Apply();
-            RenderTexture.active = null;
+            this.UpdateTexture();
         }
 
         public float CalculateEnergy(){
@@ -302,6 +272,21 @@ namespace Fluid
             computeShader.SetBuffer(0, "coefs", coefBuffer);
             computeShader.SetTexture(0, "result", this.renderTexture);
         }
+        private void UpdateTexture(){
+            int threadGroupsX = Mathf.CeilToInt(this.width / 8.0f);
+            int threadGroupsY = Mathf.CeilToInt(this.height / 8.0f);
+            try {
+                computeShader.Dispatch(0, threadGroupsX, threadGroupsY, 1);
+            } catch (Exception e) {
+                Debug.LogError("Compute shader dispatch failed: " + e.Message);
+            }
+
+            // Convert RenderTexture to Sprite
+            RenderTexture.active = renderTexture;
+            texture2D.ReadPixels(new Rect(0, 0, this.width, this.height), 0, 0);
+            texture2D.Apply();
+            RenderTexture.active = null;
+        }
         private Vector2[] FlattenArray(Vector2[,,] array){
             Vector2[] result = new Vector2[this.N * renderTexture.width * renderTexture.height];
             for (int x = 0; x < this.width; x++) {
@@ -314,7 +299,19 @@ namespace Fluid
             }
             return result;
         }
-        
+        public void ProjectForce(Vector2 lastPoint, Vector2 force)
+        {
+            float sumf = 0.0f;
+            for(int k = 1; k<=this.N; k++){
+                Vector2 k1k2 = waveNumberLookup[k];
+                Vector2 velocity = CalculateVelocity(lastPoint.x, lastPoint.y, k1k2);
+                
+                sumf += velocity.x * force.x;
+                sumf += velocity.y * force.y;
+
+                forces[k-1] = sumf;
+            }
+        }
         void OnDestroy()
         {
              if (renderTexture != null)
@@ -335,6 +332,5 @@ namespace Fluid
                 eigenFunctionBuffer = null;
             }        
         }
-
     }
 }

@@ -312,7 +312,7 @@ namespace Fluid
                 Vector2 k1k2 = waveNumberLookup[k];
                 Vector2 velocity = CalculateVelocity(lastPoint.x, lastPoint.y, k1k2);
                 
-                sumf = Vector2.Dot(velocity, force*-1.0f);
+                sumf = Vector2.Dot(velocity, force*1.0f);
                 forces[k-1] = sumf;
             }
         }

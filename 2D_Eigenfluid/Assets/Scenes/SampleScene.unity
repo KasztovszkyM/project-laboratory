@@ -167,12 +167,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   computeShader: {fileID: 7200000, guid: 1b8695c281963b4488cc49810ee84e8a, type: 3}
   spriteRenderer: {fileID: 0}
-  width: 64
-  height: 64
-  N: 16
-  randomInit: 1
-  density: 0.01
-  timeStep: 0.1
+  width: 128
+  height: 128
+  N: 25
+  randomInit: 0
+  density: 0.001
+  timeStep: 0.001
 --- !u!114 &68157377
 MonoBehaviour:
   m_ObjectHideFlags: 0

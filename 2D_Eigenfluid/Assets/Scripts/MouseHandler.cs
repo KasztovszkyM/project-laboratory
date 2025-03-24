@@ -17,22 +17,17 @@ public class MouseHandler : MonoBehaviour
     void Update(){
         if (Input.GetMouseButton(0)) 
         {
-                Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Renderer.transform.position.z - Camera.main.transform.position.z));
-                Vector3 localPoint = Renderer.transform.InverseTransformPoint(worldPoint);
-                currPoint.x = Mathf.Clamp01((localPoint.x - Renderer.spriteRenderer.bounds.min.x) / Renderer.spriteRenderer.bounds.size.x);
-                currPoint.y = Mathf.Clamp01((localPoint.y - Renderer.spriteRenderer.bounds.min.y) / Renderer.spriteRenderer.bounds.size.y);
-                
-
-                Debug.Log("mouse position: " + Input.mousePosition);
-                Debug.Log("world point " + worldPoint);
-                Debug.Log("local point " + localPoint);
+            Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Renderer.spriteRenderer.transform.position.z - Camera.main.transform.position.z));
+            Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
+            currPoint.x = (localPoint.x - Renderer.spriteRenderer.bounds.min.x) / (Renderer.spriteRenderer.sprite.rect.width /  Renderer.spriteRenderer.sprite.pixelsPerUnit) * MathF.PI;
+            currPoint.y = (localPoint.y - Renderer.spriteRenderer.bounds.min.y) / (Renderer.spriteRenderer.sprite.rect.height / Renderer.spriteRenderer.sprite.pixelsPerUnit) * MathF.PI;
+           
+            if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
                 Debug.Log("current point: " + currPoint);
-                Debug.Log("-----------------------------------");
-                if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
-                    Vector2 force = currPoint - lastPoint;
-                    Renderer.ProjectForce(lastPoint, force);
-                }
-                lastPoint = currPoint;                 
+                Vector2 force = currPoint - lastPoint;
+                Renderer.ProjectForce(lastPoint, force);
+            }
+            lastPoint = currPoint;
         } 
         if (Input.GetMouseButtonUp(0)){
             lastPoint = Vector2.zero;

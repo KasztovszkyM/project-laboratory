@@ -17,27 +17,22 @@ public class MouseHandler : MonoBehaviour
     void Update(){
         if (Input.GetMouseButton(0)) 
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            Plane spritePlane = new Plane(Vector3.right, transform.position); //vector3.right bc it is along the x axis
+                Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Renderer.transform.position.z - Camera.main.transform.position.z));
+                Vector3 localPoint = Renderer.transform.InverseTransformPoint(worldPoint);
+                currPoint.x = Mathf.Clamp01((localPoint.x - Renderer.spriteRenderer.bounds.min.x) / Renderer.spriteRenderer.bounds.size.x);
+                currPoint.y = Mathf.Clamp01((localPoint.y - Renderer.spriteRenderer.bounds.min.y) / Renderer.spriteRenderer.bounds.size.y);
+                
 
-            if (spritePlane.Raycast(ray, out float enter))
-            {
-                Vector3 worldPoint = ray.GetPoint(enter);
-                Vector3 mousePos = transform.InverseTransformPoint(worldPoint);
-                currPoint = new Vector2(mousePos.x, mousePos.y);
-                currPoint.x *= -1.0f;
-
-                currPoint.x = (currPoint.x + 2.0f) *0.25f *(float)Math.PI;
-                currPoint.y = (currPoint.y + 2.0f) *0.25f *(float)Math.PI;
-
+                Debug.Log("mouse position: " + Input.mousePosition);
+                Debug.Log("world point " + worldPoint);
+                Debug.Log("local point " + localPoint);
+                Debug.Log("current point: " + currPoint);
+                Debug.Log("-----------------------------------");
                 if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
                     Vector2 force = currPoint - lastPoint;
-                    Debug.Log(force);
                     Renderer.ProjectForce(lastPoint, force);
                 }
-                lastPoint = currPoint;
-                //Debug.Log(currPoint);
-            }                 
+                lastPoint = currPoint;                 
         } 
         if (Input.GetMouseButtonUp(0)){
             lastPoint = Vector2.zero;

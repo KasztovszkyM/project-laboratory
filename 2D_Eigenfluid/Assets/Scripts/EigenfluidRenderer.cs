@@ -13,7 +13,7 @@ namespace Fluid
         private ComputeBuffer coefBuffer;
         private ComputeBuffer eigenFunctionBuffer;
         private RenderTexture renderTexture;
-        private SpriteRenderer spriteRenderer;
+        public SpriteRenderer spriteRenderer;
         public int width;
         public int height; 
 
@@ -225,7 +225,6 @@ namespace Fluid
             }
 
             this.ResetForces();
-
 
             this.UpdateShader();            
             this.UpdateTexture();

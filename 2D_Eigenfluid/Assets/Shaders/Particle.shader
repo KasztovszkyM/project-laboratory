@@ -1,4 +1,4 @@
-Shader "Unlit/RedDotsShader"
+Shader "Unlit/ParticleShader"
 {
     Properties
     {

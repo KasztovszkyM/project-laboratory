@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Fluid
@@ -159,7 +160,7 @@ namespace Fluid
                 }
             }
         }
-        private static Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
+        public Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
             Vector2 velocity = new Vector2();
 
             float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
@@ -184,7 +185,7 @@ namespace Fluid
                 this.eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
             }
         }
-        public void FillCoeffVector(){
+        private void FillCoeffVector(){
             if(!this.randomInit){
                 for(int i = 0; i < this.N; i++){
                     this.coefs[i] = 0.0f;
@@ -193,10 +194,9 @@ namespace Fluid
             }
 
             else{
-                System.Random random = new();
                 float sum = 0.0f;
                 for(int i = 0; i < this.N; i++){
-                    this.coefs[i] = (float)random.NextDouble();
+                    this.coefs[i] = UnityEngine.Random.Range(0.0f, 1.0f);
                     sum += this.coefs[i];
                 }
                 for(int i = 0; i< this.N; i++){
@@ -221,14 +221,14 @@ namespace Fluid
                 this.forces[k] = 0.0f;
             }
         }
-        public float CalculateEnergy(){
+        private float CalculateEnergy(){
             float result = 0.0f;
             for(int i = 0; i<this.N; i++){
                 result += this.coefs[i] * this.coefs[i];
             }
             return result;
         }
-        public float ComputeDerivedCoeff(int k){
+        private float ComputeDerivedCoeff(int k){
             float[,] mat = new float[this.N, this.N];
             for (int i = 0; i < this.N; i++) {
                 for (int j = 0; j < this.N; j++) {
@@ -322,5 +322,11 @@ namespace Fluid
                 eigenFunctionBuffer = null;
             }        
         }
+    public Vector2[,,] GetEigenFunctions(){
+            return eigenFunctions;
+    }
+    public float[] GetCoefs(){
+        return coefs;
+    }
     }
 }

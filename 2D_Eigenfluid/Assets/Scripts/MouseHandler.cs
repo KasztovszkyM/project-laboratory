@@ -25,7 +25,7 @@ public class MouseHandler : MonoBehaviour
             currPoint.y = (localPoint.y - Renderer.spriteRenderer.bounds.min.y) / (rect.height / sprite.pixelsPerUnit) * MathF.PI;
             
             if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
-                Debug.Log("current point: " + currPoint);
+                //Debug.Log("current point: " + currPoint);
                 Vector2 force = currPoint - lastPoint;
                 Renderer.ProjectForce(lastPoint, force);
             }

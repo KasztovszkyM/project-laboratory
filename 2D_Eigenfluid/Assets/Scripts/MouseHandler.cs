@@ -23,7 +23,7 @@ public class MouseHandler : MonoBehaviour
             Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
             currPoint.x = (localPoint.x - Renderer.spriteRenderer.bounds.min.x) / (rect.width /  sprite.pixelsPerUnit) * MathF.PI;
             currPoint.y = (localPoint.y - Renderer.spriteRenderer.bounds.min.y) / (rect.height / sprite.pixelsPerUnit) * MathF.PI;
-           
+            
             if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
                 Debug.Log("current point: " + currPoint);
                 Vector2 force = currPoint - lastPoint;

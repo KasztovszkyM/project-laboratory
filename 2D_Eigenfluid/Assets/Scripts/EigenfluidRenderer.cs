@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Fluid
 {
@@ -28,18 +26,46 @@ namespace Fluid
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
         private float[] forces;
-        public float density = 0.1f;
-        public float timeStep = 1.0f;
+        public float density;
+        public float timeStep;
         
         void Start()
         {
             this.InitializeTexture();
             this.Initialize();
-            // Dispatch Compute Shader
+            
             this.UpdateShader();
             this.UpdateTexture();
             // Assign the texture to a sprite
             this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
+        }
+        void Update()
+        {
+            float initialEnergy = this.CalculateEnergy(); //intial energy
+            
+            float[] derivedCoefs = new float[this.N];
+             for(int k=0; k < this.N; k++){
+                derivedCoefs[k] = this.ComputeDerivedCoeff(k); //derivation
+            }
+
+            for(int k = 0; k<this.N; k++){
+               this.coefs[k] += derivedCoefs[k] * this.timeStep; //explicit euler integration
+            }
+
+            float changedEnergy = this.CalculateEnergy(); //enery after time step
+            float normFactor = MathF.Sqrt(initialEnergy/changedEnergy);
+            for(int k = 0; k<this.N; k++){
+                coefs[k] *= normFactor; //renormalize energy
+            }
+
+            for(int k = 0; k<this.N;k++){
+                this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density); //disspiate energy
+                this.coefs[k] += forces[k]; //external forces
+            }
+            this.ResetForces();
+
+            this.UpdateShader();            
+            this.UpdateTexture();
         }
         private void Initialize(){
             this.sqrtN = (int)Math.Sqrt((double)this.N);
@@ -59,9 +85,7 @@ namespace Fluid
 
             sturctCoeffMatrices = new float[this.N,this.N,this.N];
             this.PrecomputeStructCoeffMatrix();
-
         }
-
         private void PrecomputeStructCoeffMatrix()
         {
             for(int i = 0; i< this.N; i++){
@@ -71,7 +95,6 @@ namespace Fluid
                     }
                 }
             }
-
 
             for(int i = 1; i<= this.N; i++){
                 for(int j = 1; j<= this.N; j++){
@@ -84,7 +107,6 @@ namespace Fluid
                 }
             }
         }
-
         private void ProcessLookup(Vector2 i1i2, Vector2 j1j2, int i, int j, float iEigenValueInv, float jEigenValueInv)
         {
             Vector2 lookupIndex;
@@ -109,7 +131,6 @@ namespace Fluid
             UpdateStructCoeffMatrix(index3, i, j, coeffValue2, iEigenValueInv, jEigenValueInv, 0.25f);
             UpdateStructCoeffMatrix(index4, i, j, coeffValue1, iEigenValueInv, jEigenValueInv, -0.25f);
         }
-
         private void UpdateStructCoeffMatrix(int index, int i, int j, float coeffValue, float iEigenValueInv, float jEigenValueInv, float factor)
         {
             if(index > 0 && index < this.N){
@@ -117,14 +138,12 @@ namespace Fluid
                 sturctCoeffMatrices[index-1,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
             }
         }
-
         private int MatrixIndex(Vector2 lookupIndex){
             if(reverseWaveNumberLookup.ContainsKey(lookupIndex)){
                         return reverseWaveNumberLookup[lookupIndex];
                     }
             return -1;
         }
-
         private void PrecomputeEigenFunctions()
         {
             for(int i = 0; i< this.width; i++){
@@ -159,14 +178,12 @@ namespace Fluid
                 }
             }
         }
-
         private void FillEigenValues(){
             for(int k = 1; k <= this.N; k++){
                 Vector2 k1k2 = this.waveNumberLookup[k];
                 this.eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
             }
         }
-
         public void FillCoeffVector(){
             if(!this.randomInit){
                 for(int i = 0; i < this.N; i++){
@@ -187,7 +204,6 @@ namespace Fluid
                 }
             }
         }
-
         private void InitializeTexture(){
             this.spriteRenderer = GetComponent<SpriteRenderer>();
 
@@ -200,36 +216,6 @@ namespace Fluid
             coefBuffer = new ComputeBuffer(this.N, sizeof(float));
             eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
         }
-        void Update()
-        {
-            float initialEnergy = this.CalculateEnergy(); //intial energy
-            
-            float[] derivedCoefs = new float[this.N];
-             for(int k=0; k < this.N; k++){
-                derivedCoefs[k] = this.ComputeDerivedCoeff(k); //derivation
-            }
-
-            for(int k = 0; k<this.N; k++){
-               this.coefs[k] += derivedCoefs[k] * this.timeStep; //explicit euler integration
-            }
-
-            float changedEnergy = this.CalculateEnergy(); //enery after time step
-            float normFactor = MathF.Sqrt(initialEnergy/changedEnergy);
-            for(int k = 0; k<this.N; k++){
-                coefs[k] *= normFactor; //renormalize energy
-            }
-
-            for(int k = 0; k<this.N;k++){
-                this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density); //disspiate energy
-                this.coefs[k] += forces[k]; //external forces
-            }
-
-            this.ResetForces();
-
-            this.UpdateShader();            
-            this.UpdateTexture();
-        }
-
         private void ResetForces(){
             for(int k = 0; k<this.N; k++){
                 this.forces[k] = 0.0f;
@@ -251,6 +237,7 @@ namespace Fluid
             }
             float result = 0.0f;
             
+            // Compute w^T * C * w
             for(int i = 0; i<this.N; i++){
                 float sum = 0.0f;
                 for(int j = 0; j<this.N; j++){
@@ -258,7 +245,6 @@ namespace Fluid
                     result += coefs[i] * sum;
                 }
             }
-            // Compute w^T * C * w
             return result; 
         }
         private void UpdateShader(){

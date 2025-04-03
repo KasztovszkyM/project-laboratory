@@ -29,7 +29,9 @@ namespace Fluid
         private float[] forces;
         public float density;
         public float timeStep;
-        
+        public int displayWidth;
+        public int displayHeight;
+
         void Start()
         {
             this.InitializeTexture();
@@ -37,8 +39,6 @@ namespace Fluid
             
             this.UpdateShader();
             this.UpdateTexture();
-            // Assign the texture to a sprite
-            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
         }
         void Update()
         {
@@ -160,7 +160,7 @@ namespace Fluid
                 }
             }
         }
-        public Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
+        public static Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
             Vector2 velocity = new Vector2();
 
             float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
@@ -215,6 +215,15 @@ namespace Fluid
 
             coefBuffer = new ComputeBuffer(this.N, sizeof(float));
             eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
+
+            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
+            
+            Vector2 spriteSize = this.spriteRenderer.sprite.bounds.size;
+            this.spriteRenderer.transform.localScale = new Vector3(
+                displayWidth / spriteSize.x,
+                displayHeight / spriteSize.y,
+                1f
+            );
         }
         private void ResetForces(){
             for(int k = 0; k<this.N; k++){

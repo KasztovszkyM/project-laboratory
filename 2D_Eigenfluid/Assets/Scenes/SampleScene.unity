@@ -168,12 +168,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   computeShader: {fileID: 7200000, guid: ad8d9e8a9a3199b4faf4e51ea4e56dd1, type: 3}
   spriteRenderer: {fileID: 0}
-  width: 256
-  height: 256
+  width: 128
+  height: 128
   N: 25
-  randomInit: 1
-  density: 0.01
+  randomInit: 0
+  density: 0
   timeStep: 0.05
+  displayWidth: 2
+  displayHeight: 2
 --- !u!114 &68157377
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -253,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f9fc9c25bd081449ba1e655be48cdec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nParticles: 10
+  nParticles: 1000
   particleMaterial: {fileID: 2100000, guid: cd332ee545896c547bff85581ff736cc, type: 2}
 --- !u!1 &330585543
 GameObject:

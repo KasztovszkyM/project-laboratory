@@ -33,8 +33,10 @@ public class ParticleHandler : MonoBehaviour
         
         for(int i = 0; i < nParticles; i++){
             particles[i].RecalculatePos(CalculateVelocity(particles[i].GetPosition()), Renderer.timeStep);
-            positions[i].x = particles[i].GetPosition().x/width*2.0f - 1.0f;
-            positions[i].y = particles[i].GetPosition().y/height*2.0f - 1.0f;
+            if(isInbounds(particles[i].GetPosition())){
+                positions[i].x = particles[i].GetPosition().x/width*2.0f - 1.0f;
+                positions[i].y = particles[i].GetPosition().y/height*2.0f - 1.0f;
+            }
         }
         particleBuffer.SetData(positions);
         particleMaterial.SetBuffer("_ParticlePositions",particleBuffer);
@@ -67,13 +69,20 @@ public class ParticleHandler : MonoBehaviour
         Vector2 velocity = new(0.0f, 0.0f);
         //Vector2 gridPosition = new ((pos.x+1.0f)*width/2.0f , (pos.y+1.0f)*height/2.0f);
         Vector2 gridPosition = new (pos.x , pos.y);
-        if(gridPosition.x<= Renderer.width && gridPosition.y <= Renderer.height && gridPosition.x >= 0 && gridPosition.y >= 0){
+        if(isInbounds(gridPosition)){
             for(int k = 0; k < Renderer.N; k++){
-                velocity += Renderer.GetCoefs()[k] * Renderer.GetEigenFunctions()[k, (int)gridPosition.x , (int)gridPosition.y];
+                velocity += Renderer.GetCoefs()[k] * Renderer.GetEigenFunctions()[k, (int)Math.Floor(gridPosition.x) , (int)Math.Floor(gridPosition.y)];
             }
         }
         return velocity;
         
+    }
+
+    private bool isInbounds(Vector2 gridPosition){
+        if(gridPosition.x<= Renderer.width && gridPosition.y <= Renderer.height && gridPosition.x >= 0 && gridPosition.y >= 0){
+            return true;
+        }
+        return false;
     }
 }
 

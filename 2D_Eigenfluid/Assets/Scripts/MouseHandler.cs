@@ -20,12 +20,13 @@ public class MouseHandler : MonoBehaviour
         if (Input.GetMouseButton(0)) 
         {
             Vector3 worldPoint = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Renderer.spriteRenderer.transform.position.z - Camera.main.transform.position.z));
-            Vector3 localPoint = transform.InverseTransformPoint(worldPoint);
-            currPoint.x = (localPoint.x - Renderer.spriteRenderer.bounds.min.x) / (rect.width /  sprite.pixelsPerUnit) * MathF.PI;
-            currPoint.y = (localPoint.y - Renderer.spriteRenderer.bounds.min.y) / (rect.height / sprite.pixelsPerUnit) * MathF.PI;
+            Vector3 localPoint = new Vector3(worldPoint.x / (Renderer.displayWidth/2.0f), worldPoint.y / (Renderer.displayHeight/2.0f));//transform.InverseTransformPoint(worldPoint);
+            Debug.Log(localPoint);
+            currPoint.x = (localPoint.x +1.0f) *0.5f * Mathf.PI;
+            currPoint.y = (localPoint.y +1.0f) *0.5f *Mathf.PI;
             
-            if(lastPoint != Vector2.zero && IsInBounds(lastPoint)){
-                //Debug.Log("current point: " + currPoint);
+            if(lastPoint != Vector2.zero /*&& IsInBounds(lastPoint)*/){
+                Debug.Log("current point: " + currPoint);
                 Vector2 force = currPoint - lastPoint;
                 Renderer.ProjectForce(lastPoint, force);
             }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace Fluid
 {
@@ -28,177 +27,18 @@ namespace Fluid
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
         private float[] forces;
-        public float density = 0.1f;
-        public float timeStep = 1.0f;
-        
+        public float density;
+        public float timeStep;
+        public int displayWidth;
+        public int displayHeight;
+
         void Start()
         {
             this.InitializeTexture();
             this.Initialize();
-            // Dispatch Compute Shader
+            
             this.UpdateShader();
             this.UpdateTexture();
-            // Assign the texture to a sprite
-            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
-        }
-        private void Initialize(){
-            this.sqrtN = (int)Math.Sqrt((double)this.N);
-            this.FillLookupTables();
-
-            eigenValues = new float[this.N];
-            this.FillEigenValues();
-
-            eigenFunctions = new Vector2[this.N,this.width,this.height];
-            this.PrecomputeEigenFunctions();        
-
-            coefs = new float[this.N];
-            this.FillCoeffVector();
-
-            forces = new float[this.N];
-            this.ResetForces();
-
-            sturctCoeffMatrices = new float[this.N,this.N,this.N];
-            this.PrecomputeStructCoeffMatrix();
-
-        }
-
-        private void PrecomputeStructCoeffMatrix()
-        {
-            for(int i = 0; i< this.N; i++){
-                for(int j = 0; j< this.N; j++){
-                    for(int k = 0; k<this.N; k++){
-                        sturctCoeffMatrices[k,i,j] = 0.0f;
-                    }
-                }
-            }
-
-
-            for(int i = 1; i<= this.N; i++){
-                for(int j = 1; j<= this.N; j++){
-                    Vector2 i1i2 = waveNumberLookup[i];
-                    Vector2 j1j2 = waveNumberLookup[j];
-                    float iEigenValueInv = 1.0f/eigenValues[i-1];
-                    float jEigenValueInv = 1.0f/eigenValues[j-1];
-
-                    ProcessLookup(i1i2, j1j2, i, j, iEigenValueInv, jEigenValueInv);
-                }
-            }
-        }
-
-        private void ProcessLookup(Vector2 i1i2, Vector2 j1j2, int i, int j, float iEigenValueInv, float jEigenValueInv)
-        {
-            Vector2 lookupIndex;
-            
-            lookupIndex = new Vector2(i1i2.x + j1j2.x, i1i2.y + j1j2.y); 
-            int index1 = MatrixIndex(lookupIndex);
-
-            lookupIndex = new Vector2(i1i2.x + j1j2.x, i1i2.y - j1j2.y);
-            int index2 = MatrixIndex(lookupIndex);
-
-            lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y + j1j2.y);
-            int index3 = MatrixIndex(lookupIndex);  
-
-            lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y - j1j2.y);
-            int index4 = MatrixIndex(lookupIndex);
-
-            float coeffValue1 = i1i2.x*j1j2.y - i1i2.y*j1j2.x;
-            float coeffValue2 = i1i2.x*j1j2.y + i1i2.y*j1j2.x;
-
-            UpdateStructCoeffMatrix(index1, i, j, coeffValue1, iEigenValueInv, jEigenValueInv, 0.25f);
-            UpdateStructCoeffMatrix(index2, i, j, coeffValue2, iEigenValueInv, jEigenValueInv, -0.25f);
-            UpdateStructCoeffMatrix(index3, i, j, coeffValue2, iEigenValueInv, jEigenValueInv, 0.25f);
-            UpdateStructCoeffMatrix(index4, i, j, coeffValue1, iEigenValueInv, jEigenValueInv, -0.25f);
-        }
-
-        private void UpdateStructCoeffMatrix(int index, int i, int j, float coeffValue, float iEigenValueInv, float jEigenValueInv, float factor)
-        {
-            if(index > 0 && index < this.N){
-                sturctCoeffMatrices[index-1,i-1,j-1] = factor * coeffValue * iEigenValueInv;
-                sturctCoeffMatrices[index-1,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
-            }
-        }
-
-        private int MatrixIndex(Vector2 lookupIndex){
-            if(reverseWaveNumberLookup.ContainsKey(lookupIndex)){
-                        return reverseWaveNumberLookup[lookupIndex];
-                    }
-            return -1;
-        }
-
-        private void PrecomputeEigenFunctions()
-        {
-            for(int i = 0; i< this.width; i++){
-                for(int j = 0; j< this.height;j++){
-                    for(int k = 1; k <= this.N; k++){
-                        Vector2 k1k2 = waveNumberLookup[k];
-                        
-                        float x = i*((float)Math.PI/this.width);
-                        float y = j*((float)Math.PI/this.height);
-
-                        this.eigenFunctions[k-1,i,j] = CalculateVelocity(x, y, k1k2);
-                    }
-                }
-            }
-        }
-        private static Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
-            Vector2 velocity = new Vector2();
-
-            float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
-            velocity.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
-            velocity.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
-            return velocity;
-        }
-        private void FillLookupTables(){
-            int k = 1;
-            for(int i = 1; i<=this.sqrtN; i++){
-                for(int j = 1; j<=this.sqrtN; j++){
-                    Vector2 k1k2 = new Vector2(i, j);
-                    this.reverseWaveNumberLookup.Add(k1k2, k);
-                    this.waveNumberLookup.Add(k, k1k2);
-                    k++;
-                }
-            }
-        }
-
-        private void FillEigenValues(){
-            for(int k = 1; k <= this.N; k++){
-                Vector2 k1k2 = this.waveNumberLookup[k];
-                this.eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
-            }
-        }
-
-        public void FillCoeffVector(){
-            if(!this.randomInit){
-                for(int i = 0; i < this.N; i++){
-                    this.coefs[i] = 0.0f;
-                }
-                this.coefs[this.N-1] = 1.0f;
-            }
-
-            else{
-                System.Random random = new();
-                float sum = 0.0f;
-                for(int i = 0; i < this.N; i++){
-                    this.coefs[i] = (float)random.NextDouble();
-                    sum += this.coefs[i];
-                }
-                for(int i = 0; i< this.N; i++){
-                    this.coefs[i] *= 1.0f/sum;
-                }
-            }
-        }
-
-        private void InitializeTexture(){
-            this.spriteRenderer = GetComponent<SpriteRenderer>();
-
-            texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
-            // Create a RenderTexture for compute shader
-            renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32); //was RGBA32
-            renderTexture.enableRandomWrite = true;
-            renderTexture.Create();
-
-            coefBuffer = new ComputeBuffer(this.N, sizeof(float));
-            eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
         }
         void Update()
         {
@@ -223,26 +63,181 @@ namespace Fluid
                 this.coefs[k] *= Mathf.Exp(this.eigenValues[k]*this.timeStep*this.density); //disspiate energy
                 this.coefs[k] += forces[k]; //external forces
             }
-
             this.ResetForces();
 
             this.UpdateShader();            
             this.UpdateTexture();
         }
+        private void Initialize(){
+            this.sqrtN = (int)Math.Sqrt((double)this.N);
+            this.FillLookupTables();
 
+            eigenValues = new float[this.N];
+            this.FillEigenValues();
+
+            eigenFunctions = new Vector2[this.N,this.width,this.height];
+            this.PrecomputeEigenFunctions();        
+
+            coefs = new float[this.N];
+            this.FillCoeffVector();
+
+            forces = new float[this.N];
+            this.ResetForces();
+
+            sturctCoeffMatrices = new float[this.N,this.N,this.N];
+            this.PrecomputeStructCoeffMatrix();
+        }
+        private void PrecomputeStructCoeffMatrix()
+        {
+            for(int i = 0; i< this.N; i++){
+                for(int j = 0; j< this.N; j++){
+                    for(int k = 0; k<this.N; k++){
+                        sturctCoeffMatrices[k,i,j] = 0.0f;
+                    }
+                }
+            }
+
+            for(int i = 1; i<= this.N; i++){
+                for(int j = 1; j<= this.N; j++){
+                    Vector2 i1i2 = waveNumberLookup[i];
+                    Vector2 j1j2 = waveNumberLookup[j];
+                    float iEigenValueInv = 1.0f/eigenValues[i-1];
+                    float jEigenValueInv = 1.0f/eigenValues[j-1];
+
+                    ProcessLookup(i1i2, j1j2, i, j, iEigenValueInv, jEigenValueInv);
+                }
+            }
+        }
+        private void ProcessLookup(Vector2 i1i2, Vector2 j1j2, int i, int j, float iEigenValueInv, float jEigenValueInv)
+        {
+            Vector2 lookupIndex;
+            
+            lookupIndex = new Vector2(i1i2.x + j1j2.x, i1i2.y + j1j2.y); 
+            int index1 = MatrixIndex(lookupIndex);
+
+            lookupIndex = new Vector2(i1i2.x + j1j2.x, i1i2.y - j1j2.y);
+            int index2 = MatrixIndex(lookupIndex);
+
+            lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y + j1j2.y);
+            int index3 = MatrixIndex(lookupIndex);  
+
+            lookupIndex = new Vector2(i1i2.x - j1j2.x, i1i2.y - j1j2.y);
+            int index4 = MatrixIndex(lookupIndex);
+
+            float coeffValue1 = i1i2.x*j1j2.y - i1i2.y*j1j2.x;
+            float coeffValue2 = i1i2.x*j1j2.y + i1i2.y*j1j2.x;
+
+            UpdateStructCoeffMatrix(index1, i, j, coeffValue1, iEigenValueInv, jEigenValueInv, 0.25f);
+            UpdateStructCoeffMatrix(index2, i, j, coeffValue2, iEigenValueInv, jEigenValueInv, -0.25f);
+            UpdateStructCoeffMatrix(index3, i, j, coeffValue2, iEigenValueInv, jEigenValueInv, 0.25f);
+            UpdateStructCoeffMatrix(index4, i, j, coeffValue1, iEigenValueInv, jEigenValueInv, -0.25f);
+        }
+        private void UpdateStructCoeffMatrix(int index, int i, int j, float coeffValue, float iEigenValueInv, float jEigenValueInv, float factor)
+        {
+            if(index > 0 && index < this.N){
+                sturctCoeffMatrices[index-1,i-1,j-1] = factor * coeffValue * iEigenValueInv;
+                sturctCoeffMatrices[index-1,j-1,i-1] = -factor * coeffValue * jEigenValueInv;
+            }
+        }
+        private int MatrixIndex(Vector2 lookupIndex){
+            if(reverseWaveNumberLookup.ContainsKey(lookupIndex)){
+                        return reverseWaveNumberLookup[lookupIndex];
+                    }
+            return -1;
+        }
+        private void PrecomputeEigenFunctions()
+        {
+            for(int i = 0; i< this.width; i++){
+                for(int j = 0; j< this.height;j++){
+                    for(int k = 1; k <= this.N; k++){
+                        Vector2 k1k2 = waveNumberLookup[k];
+                        
+                        float x = i*((float)Math.PI/this.width);
+                        float y = j*((float)Math.PI/this.height);
+
+                        this.eigenFunctions[k-1,i,j] = CalculateVelocity(x, y, k1k2);
+                    }
+                }
+            }
+        }
+        public static Vector2 CalculateVelocity(float x, float y, Vector2 k1k2){
+            Vector2 velocity = new Vector2();
+
+            float denominator = 1.0f/(k1k2.x*k1k2.x + k1k2.y*k1k2.y);
+            velocity.x = denominator *  (k1k2.y * MathF.Sin(k1k2.x * x) * MathF.Cos(k1k2.y * y));
+            velocity.y = denominator *  -1.0f * (k1k2.x * MathF.Cos(k1k2.x * x) * MathF.Sin(k1k2.y * y));
+            return velocity;
+        }
+        private void FillLookupTables(){
+            int k = 1;
+            for(int i = 1; i<=this.sqrtN; i++){
+                for(int j = 1; j<=this.sqrtN; j++){
+                    Vector2 k1k2 = new Vector2(i, j);
+                    this.reverseWaveNumberLookup.Add(k1k2, k);
+                    this.waveNumberLookup.Add(k, k1k2);
+                    k++;
+                }
+            }
+        }
+        private void FillEigenValues(){
+            for(int k = 1; k <= this.N; k++){
+                Vector2 k1k2 = this.waveNumberLookup[k];
+                this.eigenValues[k-1] = -1.0f* (k1k2.x*k1k2.x + k1k2.y*k1k2.y);
+            }
+        }
+        private void FillCoeffVector(){
+            if(!this.randomInit){
+                for(int i = 0; i < this.N; i++){
+                    this.coefs[i] = 0.0f;
+                }
+                this.coefs[this.N-1] = 1.0f;
+            }
+
+            else{
+                float sum = 0.0f;
+                for(int i = 0; i < this.N; i++){
+                    this.coefs[i] = UnityEngine.Random.Range(0.0f, 1.0f);
+                    sum += this.coefs[i];
+                }
+                for(int i = 0; i< this.N; i++){
+                    this.coefs[i] *= 1.0f/sum;
+                }
+            }
+        }
+        private void InitializeTexture(){
+            this.spriteRenderer = GetComponent<SpriteRenderer>();
+
+            texture2D = new Texture2D(this.width, this.height, TextureFormat.ARGB32, false);
+            // Create a RenderTexture for compute shader
+            renderTexture = new RenderTexture(this.width, this.height, 0, RenderTextureFormat.ARGB32); //was RGBA32
+            renderTexture.enableRandomWrite = true;
+            renderTexture.Create();
+
+            coefBuffer = new ComputeBuffer(this.N, sizeof(float));
+            eigenFunctionBuffer = new ComputeBuffer(this.N * this.width * this.height, sizeof(float)*2);
+
+            this.spriteRenderer.sprite = Sprite.Create(texture2D, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
+            
+            Vector2 spriteSize = this.spriteRenderer.sprite.bounds.size;
+            this.spriteRenderer.transform.localScale = new Vector3(
+                displayWidth / spriteSize.x,
+                displayHeight / spriteSize.y,
+                1f
+            );
+        }
         private void ResetForces(){
             for(int k = 0; k<this.N; k++){
                 this.forces[k] = 0.0f;
             }
         }
-        public float CalculateEnergy(){
+        private float CalculateEnergy(){
             float result = 0.0f;
             for(int i = 0; i<this.N; i++){
                 result += this.coefs[i] * this.coefs[i];
             }
             return result;
         }
-        public float ComputeDerivedCoeff(int k){
+        private float ComputeDerivedCoeff(int k){
             float[,] mat = new float[this.N, this.N];
             for (int i = 0; i < this.N; i++) {
                 for (int j = 0; j < this.N; j++) {
@@ -251,6 +246,7 @@ namespace Fluid
             }
             float result = 0.0f;
             
+            // Compute w^T * C * w
             for(int i = 0; i<this.N; i++){
                 float sum = 0.0f;
                 for(int j = 0; j<this.N; j++){
@@ -258,7 +254,6 @@ namespace Fluid
                     result += coefs[i] * sum;
                 }
             }
-            // Compute w^T * C * w
             return result; 
         }
         private void UpdateShader(){
@@ -336,5 +331,11 @@ namespace Fluid
                 eigenFunctionBuffer = null;
             }        
         }
+    public Vector2[,,] GetEigenFunctions(){
+            return eigenFunctions;
+    }
+    public float[] GetCoefs(){
+        return coefs;
+    }
     }
 }

@@ -4,11 +4,13 @@ using Unity.Properties;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
 
 public class ParticleHandler : MonoBehaviour
 {
     private EigenfluidRenderer Renderer;
-    private Particle[] particles;
+    //private Particle[] particles;
+    private List<Particle> particles;
     private Vector2[] positions;
     public int nParticles;
     public Material particleMaterial;
@@ -30,12 +32,11 @@ public class ParticleHandler : MonoBehaviour
 
     void Update()
     {
-        
         for(int i = 0; i < nParticles; i++){
             particles[i].RecalculatePos(CalculateVelocity(particles[i].GetPosition()), Renderer.timeStep);
-            if(isInbounds(particles[i].GetPosition())){
-                positions[i].x = particles[i].GetPosition().x/width*2.0f - 1.0f;
-                positions[i].y = particles[i].GetPosition().y/height*2.0f - 1.0f;
+            if(IsInbounds(particles[i].GetPosition())){
+                positions[i].x = particles[i].GetPosition().x/Renderer.width*2.0f - 1.0f;
+                positions[i].y = particles[i].GetPosition().y/Renderer.height*2.0f - 1.0f;
             }
         }
         particleBuffer.SetData(positions);
@@ -43,7 +44,9 @@ public class ParticleHandler : MonoBehaviour
         particleMaterial.SetInt("_nParticles", nParticles);
 
         particleMaterial.SetPass(0);
-        Graphics.DrawProceduralNow(MeshTopology.Points, nParticles);        
+        Graphics.DrawProceduralNow(MeshTopology.Points, nParticles);
+
+        ReAddParticles();        
     }
 
     void OnRenderObject()
@@ -58,10 +61,22 @@ public class ParticleHandler : MonoBehaviour
         }
     }
     private void InitParticles(){
-        particles = new Particle[nParticles];
+        particles = new List<Particle>(nParticles);
         for(int i = 0; i<nParticles; i++){
-           particles[i] = new Particle(new Vector2(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height)));
-           Debug.Log(particles[i].GetPosition());
+           particles.Add(new Particle(new Vector2(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height))));
+           //Debug.Log(particles[i].GetPosition());
+        }
+    }
+
+    private void ReAddParticles(){
+        for(int i = particles.Count-1; i >=0; i--){
+            if(!IsInbounds(particles[i].GetPosition())){
+                particles.RemoveAt(i);
+            }
+        }
+
+        for(int i = particles.Count; i <nParticles; i++){
+            particles.Add(new Particle(new Vector2(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height))));
         }
     }
 
@@ -69,17 +84,17 @@ public class ParticleHandler : MonoBehaviour
         Vector2 velocity = new(0.0f, 0.0f);
         //Vector2 gridPosition = new ((pos.x+1.0f)*width/2.0f , (pos.y+1.0f)*height/2.0f);
         Vector2 gridPosition = new (pos.x , pos.y);
-        if(isInbounds(gridPosition)){
+        if(IsInbounds(gridPosition)){
             for(int k = 0; k < Renderer.N; k++){
-                velocity += Renderer.GetCoefs()[k] * Renderer.GetEigenFunctions()[k, (int)Math.Floor(gridPosition.x) , (int)Math.Floor(gridPosition.y)];
+                velocity += Renderer.GetCoefs()[k] * Renderer.GetEigenFunctions()[k, (int)Math.Floor(gridPosition.x), (int)Math.Floor(gridPosition.y)];
             }
         }
         return velocity;
         
     }
 
-    private bool isInbounds(Vector2 gridPosition){
-        if(gridPosition.x<= Renderer.width && gridPosition.y <= Renderer.height && gridPosition.x >= 0 && gridPosition.y >= 0){
+    private bool IsInbounds(Vector2 gridPosition){
+        if(gridPosition.x <= Renderer.width && gridPosition.y <= Renderer.height && gridPosition.x > 0 && gridPosition.y > 0){
             return true;
         }
         return false;

@@ -41,7 +41,7 @@ Shader "Unlit/ParticleShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                return fixed4(1, 0.94f, 0.56f, 1); // Red color
+                return fixed4(1, 0.94f, 0.56f, 1);
             }
             ENDCG
         }

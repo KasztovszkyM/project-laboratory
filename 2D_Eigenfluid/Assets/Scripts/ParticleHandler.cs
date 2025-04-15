@@ -9,7 +9,6 @@ using System.Collections.Generic;
 public class ParticleHandler : MonoBehaviour
 {
     private EigenfluidRenderer Renderer;
-    //private Particle[] particles;
     private List<Particle> particles;
     private Vector2[] positions;
     public int nParticles;
@@ -65,7 +64,6 @@ public class ParticleHandler : MonoBehaviour
         particles = new List<Particle>(nParticles);
         for(int i = 0; i<nParticles; i++){
            particles.Add(new Particle(new Vector2(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height))));
-           //Debug.Log(particles[i].GetPosition());
         }
     }
 

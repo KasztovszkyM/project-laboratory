@@ -1,39 +1,32 @@
 using System;
 using Fluid;
-using Unity.Properties;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UIElements;
 using System.Collections.Generic;
 
 public class ParticleHandler : MonoBehaviour
 {
     private EigenfluidRenderer Renderer;
     private List<Particle> particles;
-    private Vector2[] positions;
+    private Vector3[] positions;
     public int nParticles;
     public Material particleMaterial;
-    private ComputeBuffer particleBuffer;
     private int width;
     private int height;
-
+    public float particleRadius;
+    public Mesh sphereMesh;
 
     void Start()
     {
-        positions = new Vector2[nParticles];
+        positions = new Vector3[nParticles];
         Renderer = GetComponent<EigenfluidRenderer>();
         this.width = Renderer.width;
         this.height = Renderer.height;
-
         this.InitParticles();
-        particleBuffer = new ComputeBuffer(nParticles, sizeof(float) * 2);
     }
 
     void Update()
     {
-        
-        ReAddParticles();   
-
+        ReAddParticles();    
         for(int i = 0; i < nParticles; i++){
             particles[i].RecalculatePos(CalculateVelocity(particles[i].GetPosition()), Renderer.timeStep);
             if(IsInbounds(particles[i].GetPosition())){
@@ -41,23 +34,27 @@ public class ParticleHandler : MonoBehaviour
                 positions[i].y = particles[i].GetPosition().y/Renderer.height*2.0f - 1.0f;
             }
         }
-        particleBuffer.SetData(positions);
-        particleMaterial.SetBuffer("_ParticlePositions",particleBuffer);
-        particleMaterial.SetInt("_nParticles", nParticles);
-
-        particleMaterial.SetPass(0);
-        Graphics.DrawProceduralNow(MeshTopology.Points, nParticles);     
+        
+        List<Matrix4x4> matrices = new List<Matrix4x4>(nParticles);
+        for (int i = 0; i < nParticles; i++)
+        {
+            Matrix4x4 m = Matrix4x4.TRS(positions[i], Quaternion.identity, Vector3.one * particleRadius);
+            matrices.Add(m);
+        }
+        const int batchSize = 1023;
+        for (int i = 0; i < nParticles; i += batchSize)
+        {
+            int len = Mathf.Min(batchSize, nParticles - i);
+            Graphics.DrawMeshInstanced(sphereMesh, 0, particleMaterial, matrices.GetRange(i, len));
+        }
     }
-
-    void OnRenderObject()
+    private void OnDrawGizmos()
     {
-        particleMaterial.SetPass(0);
-        Graphics.DrawProceduralNow(MeshTopology.Points, nParticles);
-    }
-    void OnDestroy()
-    {
-        if(particleBuffer != null){
-            particleBuffer.Release();
+        Gizmos.color = Color.red;
+        for(int i = 0; i < nParticles; i++){
+            if(Application.isPlaying){
+                Gizmos.DrawSphere(positions[i], particleRadius);
+            }       
         }
     }
     private void InitParticles(){
@@ -81,7 +78,6 @@ public class ParticleHandler : MonoBehaviour
 
     private Vector2 CalculateVelocity(Vector2 pos){
         Vector2 velocity = new(0.0f, 0.0f);
-        //Vector2 gridPosition = new ((pos.x+1.0f)*width/2.0f , (pos.y+1.0f)*height/2.0f);
         int indX =Mathf.Clamp((int)Math.Floor(pos.x),0,Renderer.width);
         int indY = Mathf.Clamp((int)Math.Floor(pos.y),0,Renderer.height);
         if(IsInbounds(pos)){
@@ -99,21 +95,21 @@ public class ParticleHandler : MonoBehaviour
         }
         return false;
     }
-}
 
 public class Particle{
-    private Vector2 position;
-    private Vector2 velocity;
+    private Vector3 position;
+    private Vector3 velocity;
 
-    public Particle(Vector2 pos){
+    public Particle(Vector3 pos){
         this.position = pos;
     }
-    public void RecalculatePos(Vector2 vel, float dt){
+    public void RecalculatePos(Vector3 vel, float dt){
         this.velocity = vel;
         this.position += velocity * 10.0f; //change intuitive number to logical one
     }
 
-    public Vector2 GetPosition(){
+    public Vector3 GetPosition(){
         return this.position;
     }
+}
 }

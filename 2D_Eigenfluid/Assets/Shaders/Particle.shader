@@ -1,49 +1,47 @@
-Shader "Unlit/ParticleShader"
+Shader "Instanced/ParticleShader"
 {
-    Properties
+  SubShader
     {
-        _MainTex ("Texture", 2D) = "white" {}
-    }
-    SubShader
-    {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType" = "Opaque" }
         Pass
         {
-            CGPROGRAM
+            HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            #pragma multi_compile_instancing
             #include "UnityCG.cginc"
 
             struct appdata
             {
                 float4 vertex : POSITION;
-                float2 uv : TEXCOORD0;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
             struct v2f
             {
                 float4 pos : SV_POSITION;
+                UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            StructuredBuffer<float2> _ParticlePositions;
-            int _nParticles;
+            UNITY_INSTANCING_BUFFER_START(Props)
+            UNITY_INSTANCING_BUFFER_END(Props)
 
-            v2f vert(uint id : SV_VertexID)
+            v2f vert(appdata v)
             {
                 v2f o;
-                if (id < _nParticles)
-                {
-                    float2 particlePos = _ParticlePositions[id];
-                    o.pos = UnityObjectToClipPos(float4(particlePos, 0.0, 1.0));
-                }
+                UNITY_SETUP_INSTANCE_ID(v);
+                UNITY_TRANSFER_INSTANCE_ID(v, o);
+
+                
+                o.pos = UnityObjectToClipPos(v.vertex);
                 return o;
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                return fixed4(1, 0.94f, 0.56f, 1);
+                return fixed4(1, 1, 1, 1); // constant red
             }
-            ENDCG
+            ENDHLSL
         }
     }
 }

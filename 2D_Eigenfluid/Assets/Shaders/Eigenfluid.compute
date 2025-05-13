@@ -38,5 +38,5 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     
     //result[id.xy] = float4(velocity.x, abs(velocity.y), -velocity.x, 1.0f); 
     //result[id.xy] = float4(0.0f, 0.0f,0.0f, 1.0f)
-    result[id.xy] = float4(speed,speed,speed, 1.0f); 
+    result[id.xy] = float4(speed,speed,speed, 0.0f); 
 }

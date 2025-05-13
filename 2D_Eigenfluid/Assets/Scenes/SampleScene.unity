@@ -255,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f9fc9c25bd081449ba1e655be48cdec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  nParticles: 1000
+  nParticles: 5000
   particleMaterial: {fileID: 2100000, guid: cd332ee545896c547bff85581ff736cc, type: 2}
 --- !u!1 &330585543
 GameObject:

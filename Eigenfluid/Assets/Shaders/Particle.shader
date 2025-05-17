@@ -39,7 +39,7 @@ Shader "Instanced/ParticleShader"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                return fixed4(1, 1, 1, 1); // constant red
+                return fixed4(0, 0, 0, 1); // constant red
             }
             ENDHLSL
         }

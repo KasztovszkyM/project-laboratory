@@ -22,8 +22,8 @@ namespace Fluid
         private readonly Dictionary<int, Vector2> waveNumberLookup = new();
 
         public bool randomInit = true;
-        private Vector2[,,] eigenFunctions; //--
-        private float[] eigenValues; //--
+        private Vector2[,,] eigenFunctions;
+        private float[] eigenValues; 
         private float[] coefs;
         private float[,,] sturctCoeffMatrices;
         private float[] forces;

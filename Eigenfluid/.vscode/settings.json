@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "2D_Eigenfluid.sln"
+    "dotnet.defaultSolution": "Eigenfluid.sln"
 }

@@ -52,7 +52,7 @@ MonoBehaviour:
   width: 128
   height: 128
   N: 25
-  randomInit: 0
+  randomInit: 1
   density: 0.01
   timeStep: 0.05
   displayWidth: 2

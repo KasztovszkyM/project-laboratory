@@ -10,6 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 5808411329428767812}
   - component: {fileID: 3966454467571258348}
+  - component: {fileID: 6140633521625668776}
+  - component: {fileID: 1107146458698500194}
   - component: {fileID: 4122442017834466986}
   - component: {fileID: 1919004860814429067}
   - component: {fileID: 9001782505792384999}
@@ -57,6 +59,50 @@ MonoBehaviour:
   timeStep: 0.05
   displayWidth: 2
   displayHeight: 2
+--- !u!114 &6140633521625668776
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 646859920957262118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44205935cdf11704f940a5a2c6e910d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  computeShader: {fileID: 7200000, guid: ad8d9e8a9a3199b4faf4e51ea4e56dd1, type: 3}
+  spriteRenderer: {fileID: 0}
+  width: 128
+  height: 128
+  N: 25
+  randomInit: 1
+  density: 0.01
+  timeStep: 0.05
+  displayWidth: 2
+  displayHeight: 2
+--- !u!114 &1107146458698500194
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 646859920957262118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44205935cdf11704f940a5a2c6e910d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  computeShader: {fileID: 7200000, guid: ad8d9e8a9a3199b4faf4e51ea4e56dd1, type: 3}
+  spriteRenderer: {fileID: 0}
+  width: 128
+  height: 128
+  N: 25
+  randomInit: 1
+  density: 0.01
+  timeStep: 0.05
+  displayWidth: 2
+  displayHeight: 2
 --- !u!114 &4122442017834466986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -69,9 +115,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f9fc9c25bd081449ba1e655be48cdec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  RendererXY: {fileID: 3966454467571258348}
+  RendererXZ: {fileID: 6140633521625668776}
+  RendererYZ: {fileID: 1107146458698500194}
   nParticles: 7000
   particleMaterial: {fileID: 2100000, guid: cd332ee545896c547bff85581ff736cc, type: 2}
-  particleRadius: 0.01
+  particleRadius: 0.008
   sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!114 &1919004860814429067
 MonoBehaviour:

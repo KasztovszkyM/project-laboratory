@@ -5,7 +5,9 @@ using System.Collections.Generic;
 
 public class ParticleHandler : MonoBehaviour
 {
-    private EigenfluidRenderer Renderer;
+    public EigenfluidRenderer RendererXY;
+    public EigenfluidRenderer RendererXZ;
+    public EigenfluidRenderer RendererYZ;
     private List<Particle> particles;
     private Vector3[] positions;
     public int nParticles;
@@ -16,7 +18,6 @@ public class ParticleHandler : MonoBehaviour
     void Start()
     {
         positions = new Vector3[nParticles];
-        Renderer = GetComponent<EigenfluidRenderer>();
         matrices = new List<Matrix4x4>();
         this.InitParticles();
     }
@@ -26,12 +27,12 @@ public class ParticleHandler : MonoBehaviour
         ReAddParticles();
         for (int i = 0; i < nParticles; i++)
         {
-            particles[i].RecalculatePos(CalculateVelocity3D(particles[i].GetPosition()), Renderer.timeStep);
+            particles[i].RecalculatePos(CalculateVelocity3D(particles[i].GetPosition()), RendererXY.timeStep);
             if (IsInbounds(particles[i].GetPosition()))
             {
-                positions[i].x = particles[i].GetPosition().x / Renderer.width * 2.0f - 1.0f;
-                positions[i].y = particles[i].GetPosition().y / Renderer.height * 2.0f - 1.0f;
-                positions[i].z = particles[i].GetPosition().z / Renderer.height * 2.0f - 1.0f;
+                positions[i].x = particles[i].GetPosition().x / RendererXY.width * 2.0f - 1.0f;
+                positions[i].y = particles[i].GetPosition().y / RendererXY.height * 2.0f - 1.0f;
+                positions[i].z = particles[i].GetPosition().z / RendererXY.height * 2.0f - 1.0f;
             }
         }
 
@@ -53,7 +54,7 @@ public class ParticleHandler : MonoBehaviour
         particles = new List<Particle>(nParticles);
         for (int i = 0; i < nParticles; i++)
         {
-            particles.Add(new Particle(new Vector3(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height), UnityEngine.Random.Range(0.0f, Renderer.height))));
+            particles.Add(new Particle(new Vector3(UnityEngine.Random.Range(0.0f, RendererXY.width), UnityEngine.Random.Range(0.0f, RendererXY.height), UnityEngine.Random.Range(0.0f, RendererXY.height))));
         }
     }
 
@@ -69,14 +70,14 @@ public class ParticleHandler : MonoBehaviour
 
         for (int i = particles.Count; i < nParticles; i++)
         {
-            particles.Add(new Particle(new Vector3(UnityEngine.Random.Range(0.0f, Renderer.width), UnityEngine.Random.Range(0.0f, Renderer.height), UnityEngine.Random.Range(0.0f, Renderer.height))));
+            particles.Add(new Particle(new Vector3(UnityEngine.Random.Range(0.0f, RendererXY.width), UnityEngine.Random.Range(0.0f, RendererXY.height), UnityEngine.Random.Range(0.0f, RendererXY.height))));
         }
     }
     private Vector3 CalculateVelocity3D(Vector3 pos)
     {
-        Vector2 vXY = CalculateVelocity(new Vector2(pos.x, pos.y));
-        Vector2 vXZ = CalculateVelocity(new Vector2(pos.x, pos.z));
-        Vector2 vYZ = CalculateVelocity(new Vector2(pos.y, pos.z));
+        Vector2 vXY = CalculateVelocity(new Vector2(pos.x, pos.y),0);
+        Vector2 vXZ = CalculateVelocity(new Vector2(pos.x, pos.z),1);
+        Vector2 vYZ = CalculateVelocity(new Vector2(pos.y, pos.z),2);
 
         Vector3 velocity3D = Vector3.zero;
         velocity3D += new Vector3(vXY.x, vXY.y, 0f);
@@ -85,27 +86,44 @@ public class ParticleHandler : MonoBehaviour
 
         return velocity3D;
     }
-    private Vector2 CalculateVelocity(Vector2 pos)
+    private Vector2 CalculateVelocity(Vector2 pos, int axis)
     {
         Vector2 velocity = Vector2.zero;
-        int indX = Mathf.Clamp((int)Math.Floor(pos.x), 0, Renderer.width);
-        int indY = Mathf.Clamp((int)Math.Floor(pos.y), 0, Renderer.height);
-        if (IsInbounds(new Vector3(pos.x, pos.y, 2))) // 2 is arbitrary, just to not be out of bounds
+        int indX = Mathf.Clamp((int)Math.Floor(pos.x), 0, RendererXY.width);
+        int indY = Mathf.Clamp((int)Math.Floor(pos.y), 0, RendererXY.height);
+        if (!IsInbounds(new Vector3(pos.x, pos.y, 2))) // 2 is arbitrary, just to not be out of bounds
         {
-            for (int k = 0; k < Renderer.N; k++)
+            return velocity;
+        }
+        if (axis == 0)
+        {
+            for (int k = 0; k < RendererXY.N; k++)
             {
-                velocity += Renderer.GetCoefs()[k] * Renderer.GetEigenFunctions()[k, indX, indY];
+                velocity += RendererXY.GetCoefs()[k] * RendererXY.GetEigenFunctions()[k, indX, indY];
+            }
+        }
+        else if (axis == 1)
+        {
+            for (int k = 0; k < RendererXY.N; k++)
+            {
+                velocity += RendererXZ.GetCoefs()[k] * RendererXZ.GetEigenFunctions()[k, indX, indY];
+            }
+        }
+        else if (axis == 2)
+        {
+           for (int k = 0; k < RendererXY.N; k++)
+            {
+                velocity += RendererYZ.GetCoefs()[k] * RendererYZ.GetEigenFunctions()[k, indX, indY];
             }
         }
         return velocity;
-
     }
     private bool IsInbounds(Vector3 gridPosition)
     {
         if (
-        gridPosition.x < Renderer.width
-        && gridPosition.y < Renderer.height
-        && gridPosition.z < Renderer.height
+        gridPosition.x < RendererXY.width
+        && gridPosition.y < RendererXY.height
+        && gridPosition.z < RendererXY.height
         && gridPosition.x > 1
         && gridPosition.y > 1
         && gridPosition.z > 1)

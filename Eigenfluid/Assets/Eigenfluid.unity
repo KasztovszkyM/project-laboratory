@@ -131,6 +131,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: Renderer
       objectReference: {fileID: 0}
+    - target: {fileID: 4122442017834466986, guid: e5a49e76cb5f9cb43b79e50c825fad7d, type: 3}
+      propertyPath: nParticles
+      value: 7000
+      objectReference: {fileID: 0}
+    - target: {fileID: 4122442017834466986, guid: e5a49e76cb5f9cb43b79e50c825fad7d, type: 3}
+      propertyPath: particleRadius
+      value: 0.008
+      objectReference: {fileID: 0}
     - target: {fileID: 5808411329428767812, guid: e5a49e76cb5f9cb43b79e50c825fad7d, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

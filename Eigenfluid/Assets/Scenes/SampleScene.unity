@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 68157374}
   - component: {fileID: 68157377}
   - component: {fileID: 68157379}
+  - component: {fileID: 68157380}
   - component: {fileID: 68157378}
   m_Layer: 0
   m_Name: RenderSurface
@@ -255,10 +256,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6f9fc9c25bd081449ba1e655be48cdec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  RendererXY: {fileID: 68157374}
+  RendererXZ: {fileID: 68157374}
+  RendererYZ: {fileID: 68157374}
   nParticles: 8000
   particleMaterial: {fileID: 2100000, guid: cd332ee545896c547bff85581ff736cc, type: 2}
   particleRadius: 0.01
   sphereMesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &68157380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 68157372}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a672e53609fe0b642b5d0c8a4eef488a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
